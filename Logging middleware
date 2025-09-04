@@ -1,0 +1,44 @@
+// ---------- Logging Middleware ----------
+const LogContext = createContext([]);
+const useLogger = () => useContext(LogContext);
+
+const LoggerProvider = ({ children }) => {
+  const [logs, setLogs] = useState([]);
+
+  // Central reusable Log function
+  const Log = async (stack, level, pkg, message) => {
+    const entry = {
+      stack,
+      level,
+      package: pkg,
+      message,
+      ts: new Date().toLocaleTimeString(),
+    };
+
+    // 1. Update local logs for UI
+    setLogs((prev) => [...prev, entry]);
+
+    // 2. Print to console
+    console[level](`[${stack}] [${level}] [${pkg}] ${message}`);
+
+    // 3. Send to backend logging API
+    try {
+      await fetch("http://20.244.56.144/evaluation-service/logs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // add Authorization header with Bearer token if required
+        },
+        body: JSON.stringify(entry),
+      });
+    } catch (err) {
+      console.error("Failed to send log:", err);
+    }
+  };
+
+  return (
+    <LogContext.Provider value={{ logs, Log }}>
+      {children}
+    </LogContext.Provider>
+  );
+};
